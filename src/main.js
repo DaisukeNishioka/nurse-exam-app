@@ -2,20 +2,23 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-// ルート定義（必要に応じてコンポーネントを追加）
+// ページコンポーネントのインポート
 import Home from './components/Home.vue'
-import About from './components/About.vue'
+import QuestionView from './components/QuestionView.vue'
+import ExplanationView from './components/ExplanationView.vue'
 
+// ルート定義
 const routes = [
   { path: '/', component: Home },
-  { path: '/about', component: About }
+  { path: '/question', component: QuestionView },
+  { path: '/explanation', component: ExplanationView }
 ]
 
+// ルーター作成
 const router = createRouter({
-  history: createWebHashHistory(), // GitHub Pages対応のhashモード
+  history: createWebHashHistory(),
   routes
 })
 
-const app = createApp(App)
-app.use(router)
-app.mount('#app')
+// アプリ作成 & マウント
+createApp(App).use(router).mount('#app')

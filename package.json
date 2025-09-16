@@ -12,7 +12,7 @@
     "release": "npm run build && npm run deploy && npm run push"
   },
   "dependencies": {
-    "@line/liff": "^2.27.1",
+    "@line/liff": "^2.27.2",
     "dotenv": "^17.2.2",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
