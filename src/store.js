@@ -1,49 +1,51 @@
-import liff from '@line/liff'
+// src/store.js
+import { reactive } from 'vue';
+import liff from '@line/liff';
+import { fetchQuestions } from './services/sheets.js';
 
-export const state = {
+// 環境変数からLIFF IDを取得
+const liffId = import.meta.env.VITE_LIFF_ID;
+
+export const state = reactive({
   userProfile: null,
   questions: [],
   currentQuestion: null,
   currentIndex: 0,
   selectedAnswer: null,
   selectedGenre: null,
-  liffError: null
-}
+  liffError: null,
+  history: []
+});
 
 export async function initLiff() {
+  if (!liffId) {
+    state.liffError = 'LIFF IDが設定されていません。';
+    throw new Error("LIFF ID is not defined. Please check your .env file.");
+  }
+  
   try {
-    await liff.init({ liffId: '2007960970-0XLPeGjN' })
-
+    await liff.init({ liffId });
     if (!liff.isLoggedIn()) {
-      liff.login()
-      return // ログイン後は自動で再読み込みされるため、ここで終了
+      liff.login();
+      return;
     }
-
-    state.userProfile = await liff.getProfile()
+    state.userProfile = await liff.getProfile();
   } catch (e) {
-    console.error('LIFF init failed:', e)
-    state.liffError = e.message || 'LIFF初期化に失敗しました'
+    console.error('LIFF初期化またはプロフィール取得に失敗:', e);
+    state.liffError = e.message || 'LIFF初期化に失敗しました';
   }
 }
 
 export async function loadQuestionsFromSheet() {
   try {
-    const response = await fetch('/questions.json') // ← ローカル or 公開URLに変更可能
-
-    if (!response.ok) {
-      throw new Error(`HTTPエラー: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log('Loaded questions:', data)
-
-    if (Array.isArray(data)) {
-      state.questions = data
+    const questions = await fetchQuestions();
+    if (Array.isArray(questions)) {
+      state.questions = questions;
     } else {
-      throw new Error('問題データが配列ではありません')
+      throw new Error('問題データが配列ではありません');
     }
   } catch (e) {
-    console.error('Failed to load questions:', e)
-    state.liffError = e.message || '問題データの取得に失敗しました'
+    console.error('問題データのロードに失敗:', e);
+    state.liffError = e.message || '問題データの取得に失敗しました';
   }
 }

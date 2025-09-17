@@ -1,82 +1,47 @@
 <template>
-  <div class="home">
-    <h2>看護師国家試験対策アプリ</h2>
-
-    <div v-if="state.liffError">
-      <p class="error">LIFF初期化エラー: {{ state.liffError }}</p>
-    </div>
-
-    <div v-else-if="!state.userProfile">
-      <p>LINEログイン中...</p>
-    </div>
-
-    <div v-else>
-      <p class="welcome">こんにちは、{{ state.userProfile.displayName }} さん！</p>
-      <p>読み込んだ問題数: {{ state.questions.length }}</p>
-
-      <GenreSelector @select="handleGenreSelect" />
-
-      <details>
-        <summary>📦 問題データの中身を表示</summary>
-        <pre>{{ JSON.stringify(state.questions, null, 2) }}</pre>
-      </details>
-    </div>
+  <div>
+    <h2>必修過去問データ</h2>
+    <ul>
+      <li v-for="(row, index) in sheetData" :key="index">
+        {{ row }}
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { state, initLiff, loadQuestionsFromSheet } from '../store.js'
-import GenreSelector from './GenreSelector.vue'
+import { ref, onMounted } from 'vue'
 
-const router = useRouter()
+const sheetData = ref([])
+
+// `.env` から環境変数を取得
+const sheetId = import.meta.env.VITE_SHEET_ID
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY
+
+// Google Sheets API のリクエストURLを構築
+const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/必修過去問!A1:I126?key=${apiKey}`
+
+// ✅ デバッグログ（ここが重要！）
+console.log('APIキー:', apiKey)
+console.log('シートID:', sheetId)
+console.log('リクエストURL:', url)
 
 onMounted(async () => {
   try {
-    await initLiff()
-    await loadQuestionsFromSheet()
-  } catch (e) {
-    state.liffError = e.message || '初期化エラー'
+    const res = await fetch(url)
+    const data = await res.json()
+
+    // ✅ レスポンス確認
+    console.log('取得したデータ:', data)
+
+    if (data.values) {
+      sheetData.value = data.values
+    } else {
+      console.warn('データが空です')
+    }
+  } catch (err) {
+    console.error('取得エラー:', err)
+    alert('データの取得に失敗しました。APIキーやシートIDを確認してください。')
   }
 })
-
-function handleGenreSelect(genre) {
-  const genreQuestions = state.questions.filter(q => q.genre?.trim() === genre.trim())
-  state.currentIndex = 0
-  state.currentQuestion = genreQuestions[0] ?? null
-  state.selectedAnswer = null
-  state.selectedGenre = genre
-  router.push('/question')
-}
 </script>
-
-<style scoped>
-.home {
-  max-width: 640px;
-  margin: auto;
-  padding: 2rem;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.welcome {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-}
-
-.error {
-  color: red;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-details {
-  margin-top: 1rem;
-  background: #f9f9f9;
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  white-space: pre-wrap;
-}
-</style>
