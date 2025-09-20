@@ -1,64 +1,97 @@
 <template>
   <div v-if="question" class="explanation-container">
-    <h2>問題 {{ question.id }} の解説</h2>
-    <p class="explanation-text">{{ question.explanation }}</p>
+    <h2>問題 {{ question.id }} の結果</h2>
     <div class="result">
-      <p>あなたの回答：<strong>{{ question.choices[state.selectedAnswer] }}</strong></p>
       <p v-if="isCorrect" class="correct">✅ 正解です！</p>
       <p v-else class="incorrect">❌ 不正解...（正解：{{ question.answer }}）</p>
     </div>
     <button @click="goNext">次の問題へ</button>
   </div>
+  <div v-else class="loading-state">
+    <p>問題データが見つかりませんでした。</p>
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { state } from '../store.js';
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { state } from '../store.js'
 
-const router = useRouter();
+const router = useRouter()
 
-const question = state.currentQuestion;
-const selectedAnswerIndex = state.selectedAnswer;
+const question = state.currentQuestion
+const selectedAnswerIndex = state.selectedAnswer
 
 const isCorrect = computed(() => {
-  if (!question || selectedAnswerIndex === null) {
-    return false;
-  }
-  return question.answer === String(selectedAnswerIndex + 1);
-});
+  if (!question || selectedAnswerIndex === null) return false
+  return question.answer === String(selectedAnswerIndex + 1)
+})
 
 function goNext() {
+  if (!question) return
+
+  // 履歴に記録
   state.history.push({
     id: question.id,
     isCorrect: isCorrect.value,
     timestamp: new Date().toISOString(),
-    selectedAnswer: state.selectedAnswer
-  });
+    selectedAnswer: selectedAnswerIndex
+  })
 
-  const genreQuestions = state.questions.filter(q => q.genre === question.genre);
-  const nextIndex = state.currentIndex + 1;
+  const nextIndex = state.currentIndex + 1
 
-  if (nextIndex < genreQuestions.length) {
-    state.currentIndex = nextIndex;
-    state.currentQuestion = genreQuestions[nextIndex];
-    state.selectedAnswer = null;
-    router.push({ name: 'QuestionView' });
+  if (nextIndex < state.filteredQuestions.length) {
+    state.currentIndex = nextIndex
+    state.currentQuestion = state.filteredQuestions[nextIndex]
+    state.selectedAnswer = null
+    router.push({ name: 'QuestionView' })
   } else {
-    alert('このジャンルの問題は全て終了しました！');
-    // ResultViewコンポーネントを作成していないため、Homeに戻る設定にする
-    router.push({ name: 'Home' });
+    alert('このジャンルの問題はすべて終了しました！')
+    // 状態リセットしてジャンル選択画面へ
+    state.selectedGenre = null
+    state.filteredQuestions = []
+    state.currentIndex = 0
+    state.currentQuestion = null
+    state.selectedAnswer = null
+    router.push({ name: 'GenreSelector' })
   }
 }
 </script>
 
 <style scoped>
-.explanation-container { padding: 20px; }
-.explanation-text { font-size: 1.1rem; margin-bottom: 20px; line-height: 1.6; }
-.result { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-.result p { margin: 0; }
-.correct { color: green; font-weight: bold; }
-.incorrect { color: red; font-weight: bold; }
-button { padding: 10px 15px; font-size: 1rem; background-color: #dff0d8; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
-button:hover { background-color: #c8e5bc; }
+.explanation-container {
+  padding: 20px;
+}
+.result {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+}
+.correct {
+  color: green;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+.incorrect {
+  color: red;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+button {
+  padding: 10px 15px;
+  font-size: 1rem;
+  background-color: #dff0d8;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #c8e5bc;
+}
+.loading-state {
+  text-align: center;
+  padding-top: 50px;
+}
 </style>
